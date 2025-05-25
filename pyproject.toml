@@ -1,6 +1,6 @@
 [project]
 name = "bakr"
-version = "0.1.0"
+version = "0.1.8"
 description = "Backup file restore tool with drag-and-drop support"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -8,24 +8,41 @@ dependencies = [
     "loguru>=0.7.3",
     "plotly>=6.1.1",
     "rich>=14.0.0",
+    "send2trash>=1.8.3",
     "streamlit>=1.45.1",
     "textual>=0.72.0",
 ]
 
-[project.optional-dependencies]
-cli = [
-    "rich>=13.0.0"
-]
-dev = [
-    "pytest>=7.0.0",
-    "black>=22.0.0",
-    "mypy>=1.0.0"
-]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.scripts]
+bakr = "bakr.__main__:main"
+[tool.setuptools.packages.find]
+where = ["src"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "W"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
+
 

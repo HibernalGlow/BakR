@@ -171,7 +171,7 @@ class MultiFileManager:
                 progress = (i + 1) / total_files
                 self._report_progress(progress, f"已扫描 {i + 1}/{total_files} 个文件")
                 # 短暂暂停
-                time.sleep(0.1)
+                # time.sleep(0.1)
             # 自动为有备份但未设置selected_backup的文件设置第一个备份
             for item in self.file_queue.items:
                 if item.backup_files and not item.selected_backup:
@@ -272,7 +272,7 @@ class MultiFileManager:
                 # 更新总体进度
                 progress = (i + 1) / total_files
                 self._report_progress(progress, f"已处理 {i + 1}/{total_files} 个文件")
-                time.sleep(0.1)
+                # time.sleep(0.1)
             self._is_processing = False
             if self._cancel_requested:
                 self._report_progress(1.0, f"批量恢复已取消，已成功恢复 {success_count} 个文件")

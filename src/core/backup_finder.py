@@ -6,50 +6,48 @@ import os
 from pathlib import Path
 from typing import Optional, List
 from loguru import logger
+from config.config import load_bakr_config
 
 
 class BackupFinder:
     """查找备份文件的核心类"""
     
     def __init__(self):
-        self.search_extensions = ['.bak', '.backup', '.old']
+        config = load_bakr_config()
+        self.search_extensions = config.get('bak_extensions', ['.bak', '.backup', '.old'])
+        self.max_recurse_level = config.get('max_recurse_level', 5)
     
     def find_nearest_backup(self, target_file: Path) -> Optional[Path]:
         """
-        查找最近的备份文件
-        首先在同级目录查找，然后向上级目录查找
+        1. 先查找同目录同名备份
+        2. 没有则回溯向上查找任意bak文件（不要求同名）
         """
         target_name = target_file.name
         current_dir = target_file.parent
-        
-        # 先在同级目录查找
-        backup_file = self._search_in_directory(current_dir, target_name)
-        if backup_file:
-            return backup_file
-        
-        # 向上级目录查找
-        return self._search_parent_directories(current_dir, target_name)
-    
-    def _search_in_directory(self, directory: Path, target_name: str) -> Optional[Path]:
-        """在指定目录中查找备份文件"""
+        tried_paths = []
+        # Step 1: 同目录同名
         for ext in self.search_extensions:
-            backup_path = directory / f"{target_name}{ext}"
-            if backup_path.exists():
-                return backup_path
+            path = current_dir / f"{target_name}{ext}"
+            tried_paths.append(str(path))
+            if path.exists():
+                logger.info(f"同目录同名备份命中: {path}")
+                logger.debug(f"查找路径: {tried_paths}")
+                return path
+        # Step 2: 回溯向上找任意bak
+        parent = current_dir
+        for level in range(self.max_recurse_level):
+            for file in parent.iterdir():
+                if file.is_file() and file.suffix in self.search_extensions:
+                    tried_paths.append(str(file))
+                    logger.info(f"回溯模式命中: {file} (level={level+1})")
+                    logger.debug(f"查找路径: {tried_paths}")
+                    return file
+            if parent == parent.parent:
+                break
+            parent = parent.parent
+        logger.warning(f"未找到备份文件，已查找路径: {tried_paths}")
         return None
     
-    def _search_parent_directories(self, start_dir: Path, target_name: str) -> Optional[Path]:
-        """向上级目录递归查找"""
-        current = start_dir.parent
-        
-        while current != current.parent:  # 直到根目录
-            backup_file = self._search_in_directory(current, target_name)
-            if backup_file:
-                return backup_file
-            current = current.parent
-        
-        return None
-
     def get_search_info(self, target_file: Path) -> dict:
         """获取搜索信息，用于前端显示"""
         target_name = target_file.name

@@ -11,7 +11,7 @@ project_root = Path(__file__).parent
 src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
-if __name__ == "__main__":
+def main():
     import streamlit.web.cli as stcli
     
     # Streamlit应用文件路径
@@ -30,3 +30,5 @@ if __name__ == "__main__":
     ]
     
     stcli.main()
+if __name__ == "__main__":
+    main()

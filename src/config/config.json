@@ -1,0 +1,5 @@
+{
+  "bak_extensions": [".bak", ".backup", ".old"],
+  "max_recurse_level": 5,
+  "new_file_suffix": ".new"
+} 

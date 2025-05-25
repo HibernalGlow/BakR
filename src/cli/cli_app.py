@@ -20,8 +20,7 @@ from rich.layout import Layout
 from rich.live import Live
 
 # 添加src目录到路径以支持核心模块导入
-src_path = Path(__file__).parent.parent
-sys.path.insert(0, str(src_path))
+
 
 from core.backup_finder import BackupFinder
 from core.backup_restorer import BackupRestorer
@@ -230,8 +229,63 @@ class BakRCLI:
         elif choice == 2:
             self.restore_single_file_interactive(restorable_items)
     
+    def show_restore_plan(self):
+        """批量恢复前展示恢复计划表格"""
+        from rich.table import Table
+        from rich import box
+        restorable_items = self.file_manager.file_queue.get_restorable_items()
+        if not restorable_items:
+            self.console.print("[yellow]没有可恢复的文件[/yellow]")
+            return False
+        table = Table(title="批量恢复计划", box=box.SIMPLE_HEAVY)
+        table.add_column("原文件", style="cyan", no_wrap=True)
+        table.add_column("备份文件", style="green")
+        table.add_column("类型", style="magenta")
+        table.add_column("目录", style="yellow")
+        table.add_column("回溯层级", style="dim", justify="right")
+        table.add_column("大小", style="white", justify="right")
+        table.add_column("修改时间", style="white")
+        for item in restorable_items:
+            backup_path = item.selected_backup
+            if not backup_path:
+                continue
+            # 判断类型和回溯层级
+            try:
+                orig_dir = item.path.parent.resolve()
+                bak_dir = backup_path.parent.resolve()
+                level = 0
+                cur = orig_dir
+                while cur != bak_dir and cur != cur.parent:
+                    cur = cur.parent
+                    level += 1
+                bak_type = "同名" if (item.path.stem == backup_path.stem or item.path.name in backup_path.name) and level == 0 else "回溯"
+            except Exception:
+                bak_type = "?"
+                level = "?"
+            try:
+                size = backup_path.stat().st_size
+                mtime = backup_path.stat().st_mtime
+                import datetime
+                mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                size = "?"
+                mtime_str = "?"
+            table.add_row(
+                item.name,
+                str(backup_path),
+                bak_type,
+                str(backup_path.parent),
+                str(level),
+                self.format_file_size(size) if isinstance(size, int) else size,
+                mtime_str
+            )
+        self.console.print(table)
+        return True
+
     def batch_restore_files(self):
         """批量恢复文件"""
+        if not self.show_restore_plan():
+            return
         if not Confirm.ask("[bold red]这将覆盖原文件，确认批量恢复？[/bold red]"):
             return
         def progress_callback(progress, message):
@@ -239,6 +293,7 @@ class BakRCLI:
             self.console.print(f"[{percentage}%] {message}")
         # 设置进度回调并执行恢复
         self.file_manager.set_progress_callback(progress_callback)
+        from config.config import config_info
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -248,6 +303,9 @@ class BakRCLI:
             success = self.file_manager.batch_restore_files()
         if success:
             self.console.print("[green]✓ 批量恢复完成[/green]")
+        else:
+            self.console.print(f"[red]✗ 批量恢复失败，详细日志见: {config_info['log_file']}[/red]")
+    
     def restore_single_file_interactive(self, restorable_items):
         """单文件交互式恢复"""
         file_choice = IntPrompt.ask(

@@ -3,6 +3,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
+import json
 
 def setup_logger(app_name="app", project_root=None, console_output=True):
     """配置 Loguru 日志系统
@@ -63,3 +64,20 @@ def setup_logger(app_name="app", project_root=None, console_output=True):
     return logger, config_info
 
 logger, config_info = setup_logger(app_name="bakr", console_output=True)
+
+def load_bakr_config():
+    """从config.json加载bakr相关配置"""
+    config_paths = [
+        Path(__file__).parent.parent / "config.json",
+        Path(__file__).parent / "config.json"
+    ]
+    for path in config_paths:
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    # 默认配置
+    return {
+        'bak_extensions': ['.bak', '.backup', '.old'],
+        'max_recurse_level': 5,
+        'new_file_suffix': '.new',
+    }

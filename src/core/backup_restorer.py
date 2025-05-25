@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
 from datetime import datetime
 from loguru import logger
+from send2trash import send2trash
 
 
 class BackupRestorer:
@@ -45,6 +46,12 @@ class BackupRestorer:
             logger.info(f"复制备份文件 {backup_file} 到 {target_file}")
             shutil.copy2(backup_file, target_file)
             logger.success(f"成功恢复 {backup_file.name} 到 {target_file.name}")
+            # 恢复成功后将bak文件移入回收站
+            try:
+                send2trash(str(backup_file))
+                logger.info(f"已将备份文件移入回收站: {backup_file}")
+            except Exception as e:
+                logger.warning(f"备份文件移入回收站失败: {backup_file}, 错误: {e}")
             return {
                 "success": True,
                 "message": f"成功恢复 {backup_file.name} 到 {target_file.name}",

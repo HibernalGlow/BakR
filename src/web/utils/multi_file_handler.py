@@ -190,7 +190,7 @@ class StreamlitMultiFileHandler:
                 st.session_state.batch_progress = progress
                 
                 # 短暂暂停以显示进度
-                time.sleep(0.1)
+                # time.sleep(0.1)
             
             st.session_state.batch_processing = False
             st.session_state.batch_progress = 1.0
@@ -263,7 +263,7 @@ class StreamlitMultiFileHandler:
                 st.session_state.batch_progress = progress
                 
                 # 短暂暂停以显示进度
-                time.sleep(0.1)
+                # time.sleep(0.1)
             
             st.session_state.batch_processing = False
             st.session_state.batch_progress = 1.0

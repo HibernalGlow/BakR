@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Optional, List
 from loguru import logger
-from config.config import load_bakr_config
+from bakr.config.config import load_bakr_config
 
 
 class BackupFinder:

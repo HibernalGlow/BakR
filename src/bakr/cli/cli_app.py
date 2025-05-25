@@ -22,10 +22,10 @@ from rich.live import Live
 # 添加src目录到路径以支持核心模块导入
 
 
-from core.backup_finder import BackupFinder
-from core.backup_restorer import BackupRestorer
-from core.file_queue import FileQueue, FileQueueItem, FileStatus
-from core.multi_file_manager import MultiFileManager
+from bakr.core.backup_finder import BackupFinder
+from bakr.core.backup_restorer import BackupRestorer
+from bakr.core.file_queue import FileQueue, FileQueueItem, FileStatus
+from bakr.core.multi_file_manager import MultiFileManager
 from loguru import logger   
 
 class BakRCLI:
@@ -293,7 +293,7 @@ class BakRCLI:
             self.console.print(f"[{percentage}%] {message}")
         # 设置进度回调并执行恢复
         self.file_manager.set_progress_callback(progress_callback)
-        from config.config import config_info
+        from bakr.config.config import config_info
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),

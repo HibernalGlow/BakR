@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .multi-drop-zone {
+            border: 2px dashed #cccccc;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .multi-drop-zone:hover {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+            transform: translateY(-2px);
+        }
+        
+        .multi-drop-zone.drag-over {
+            border-color: #4caf50;
+            background-color: #e8f5e8;
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+        
+        .drop-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .drag-over .drop-icon {
+            color: #4caf50;
+            transform: scale(1.2);
+        }
+        
+        .drop-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .drop-hint {
+            font-size: 14px;
+            color: #999;
+            margin-top: 10px;
+        }
+        
+        .file-list {
+            margin-top: 20px;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .file-item {
+            background: #f1f3f4;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        
+        .file-item:hover {
+            background: #e8eaf6;
+            transform: translateX(5px);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .file-size {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .remove-btn {
+            background: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background: #d84315;
+        }
+        
+        .clear-all-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .clear-all-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-1px);
+        }
+        
+        .file-count {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="multiDropZone" class="multi-drop-zone">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">拖拽多个文件到这里</div>
+        <div class="drop-hint">支持同时选择多个文件进行批量处理</div>
+        <div id="fileList" class="file-list" style="display: none;"></div>
+        <div id="fileCount" class="file-count" style="display: none;"></div>
+        <button id="clearAllBtn" class="clear-all-btn" style="display: none;">清空所有文件</button>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        
+        const dropZone = document.getElementById('multiDropZone');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        
+        // 阻止默认拖拽行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 高亮拖拽区域
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 处理文件拖拽
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        // 点击选择文件
+        dropZone.addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.onchange = function(e) {
+                handleFiles(e.target.files);
+            };
+            input.click();
+        });
+        
+        // 清空所有文件
+        clearAllBtn.addEventListener('click', function() {
+            selectedFiles = [];
+            updateFileList();
+            updateStreamlit();
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight() {
+            dropZone.classList.add('drag-over');
+        }
+        
+        function unhighlight() {
+            dropZone.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        function handleFiles(files) {
+            [...files].forEach(file => {
+                // 检查文件是否已存在
+                const exists = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                if (!exists) {
+                    selectedFiles.push({
+                        name: file.name,
+                        size: file.size,
+                        lastModified: file.lastModified,
+                        type: file.type || 'unknown',
+                        id: Date.now() + Math.random()
+                    });
+                }
+            });
+            
+            updateFileList();
+            updateStreamlit();
+        }
+        
+        function removeFile(fileId) {
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            updateFileList();
+            updateStreamlit();
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function updateFileList() {
+            if (selectedFiles.length === 0) {
+                fileList.style.display = 'none';
+                fileCount.style.display = 'none';
+                clearAllBtn.style.display = 'none';
+                dropZone.querySelector('.drop-text').textContent = '拖拽多个文件到这里';
+                dropZone.querySelector('.drop-hint').textContent = '支持同时选择多个文件进行批量处理';
+                return;
+            }
+            
+            fileList.style.display = 'block';
+            fileCount.style.display = 'block';
+            clearAllBtn.style.display = 'block';
+            
+            fileCount.textContent = `已选择 ${selectedFiles.length} 个文件`;
+            
+            fileList.innerHTML = selectedFiles.map(file => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">(${formatFileSize(file.size)})</span>
+                    </div>
+                    <button class="remove-btn" onclick="removeFile(${file.id})">移除</button>
+                </div>
+            `).join('');
+            
+            dropZone.querySelector('.drop-text').textContent = '继续添加更多文件';
+            dropZone.querySelector('.drop-hint').textContent = '或点击移除不需要的文件';
+        }
+        
+        function updateStreamlit() {
+            // 发送文件信息到Streamlit
+            window.parent.postMessage({
+                type: 'multi_file_drop',
+                files: selectedFiles
+            }, '*');
+        }
+    </script>
+</body>
+</html>

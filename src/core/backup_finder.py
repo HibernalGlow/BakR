@@ -5,6 +5,7 @@
 import os
 from pathlib import Path
 from typing import Optional, List
+from loguru import logger
 
 
 class BackupFinder:

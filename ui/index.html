@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BakR - 备份文件恢复工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 标题栏 -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">📁</span>
+                <h1>BakR</h1>
+            </div>
+            <p class="subtitle">智能备份文件恢复工具</p>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 拖拽区域 -->
+            <section class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">🎯</div>
+                    <h2>拖拽文件到此处</h2>
+                    <p>支持任意文件类型，自动查找对应的备份文件</p>
+                    <div class="supported-formats">
+                        <span class="format-tag">.bak</span>
+                        <span class="format-tag">.backup</span>
+                        <span class="format-tag">.old</span>
+                    </div>
+                    <button class="browse-btn" id="browseBtn">或点击选择文件</button>
+                </div>
+            </section>
+
+            <!-- 文件信息区域 -->
+            <sectio class="file-info" id="fileInfo" style="display: none;">
+                <div class="info-card">
+                    <h3>📄 目标文件</h3>
+                    <div class="file-details" id="targetFileDetails"></div>
+                </div>
+                
+                <div class="info-card" id="backupCard" style="display: none;">
+                    <h3>💾 找到的备份文件</h3>
+                    <div class="file-details" id="backupFileDetails"></div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="previewBtn">预览恢复</button>
+                        <button class="btn btn-success" id="restoreBtn">执行恢复</button>
+                    </div>
+                </div>
+                
+                <div class="info-card warning" id="noBackupCard" style="display: none;">
+                    <h3>⚠️ 未找到备份文件</h3>
+                    <p>在以下位置搜索了备份文件：</p>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+            </section>
+
+            <!-- 预览对话框 -->
+            <div class="modal" id="previewModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>🔍 恢复预览</h3>
+                        <button class="close-btn" id="closePreview">&times;</button>
+                    </div>
+                    <div class="modal-body" id="previewContent">
+                        <!-- 预览内容将在这里动态生成 -->
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelRestore">取消</button>
+                        <button class="btn btn-danger" id="confirmRestore">确认恢复</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 操作日志 -->
+        <footer class="log-section">
+            <div class="log-header">
+                <h3>📝 操作日志</h3>
+                <button class="btn btn-small" id="clearLogBtn">清空</button>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-entry info">
+                    <span class="timestamp">[15:47:12]</span>
+                    <span class="message">应用启动成功</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div class="loading" id="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>处理中...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

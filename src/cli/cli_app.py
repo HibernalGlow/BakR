@@ -27,7 +27,7 @@ from core.backup_finder import BackupFinder
 from core.backup_restorer import BackupRestorer
 from core.file_queue import FileQueue, FileQueueItem, FileStatus
 from core.multi_file_manager import MultiFileManager
-
+from loguru import logger   
 
 class BakRCLI:
     """BakR 命令行应用类"""
@@ -234,14 +234,11 @@ class BakRCLI:
         """批量恢复文件"""
         if not Confirm.ask("[bold red]这将覆盖原文件，确认批量恢复？[/bold red]"):
             return
-        
         def progress_callback(progress, message):
             percentage = int(progress * 100)
             self.console.print(f"[{percentage}%] {message}")
-        
         # 设置进度回调并执行恢复
         self.file_manager.set_progress_callback(progress_callback)
-        
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -249,11 +246,8 @@ class BakRCLI:
         ) as progress:
             task = progress.add_task("恢复文件...", total=None)
             success = self.file_manager.batch_restore_files()
-        
         if success:
             self.console.print("[green]✓ 批量恢复完成[/green]")
-        else:
-            self.console.print("[red]✗ 批量恢复失败[/red]")
     def restore_single_file_interactive(self, restorable_items):
         """单文件交互式恢复"""
         file_choice = IntPrompt.ask(

@@ -18,30 +18,33 @@ class BackupRestorer:
         1. 将原文件重命名为 .new
         2. 将备份文件复制到原位置
         """
+        logger.debug(f"[restore_backup] target_file={target_file}, backup_file={backup_file}")
         try:
             # 检查文件是否存在
             if not backup_file.exists():
+                logger.error(f"备份文件不存在: {backup_file}")
                 return {
                     "success": False,
                     "message": f"备份文件不存在: {backup_file}",
                     "details": {}
                 }
-            
             new_file_path = None
-            
             # 如果目标文件存在，先备份为 .new
             if target_file.exists():
+                logger.info(f"目标文件存在，准备创建 .new 备份: {target_file}")
                 new_file_path = self._create_new_backup(target_file)
                 if not new_file_path:
+                    logger.error(f"无法创建 .new 备份文件: {target_file}")
                     return {
                         "success": False,
                         "message": "无法创建 .new 备份文件",
                         "details": {}
                     }
-            
+                logger.info(f"已创建 .new 备份文件: {new_file_path}")
             # 复制备份文件到目标位置
+            logger.info(f"复制备份文件 {backup_file} 到 {target_file}")
             shutil.copy2(backup_file, target_file)
-            
+            logger.success(f"成功恢复 {backup_file.name} 到 {target_file.name}")
             return {
                 "success": True,
                 "message": f"成功恢复 {backup_file.name} 到 {target_file.name}",
@@ -52,8 +55,8 @@ class BackupRestorer:
                     "timestamp": datetime.now().isoformat()
                 }
             }
-            
         except Exception as e:
+            logger.exception(f"恢复失败: {e}")
             return {
                 "success": False,
                 "message": f"恢复失败: {str(e)}",
@@ -65,15 +68,15 @@ class BackupRestorer:
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             new_file = target_file.with_suffix(f"{target_file.suffix}.new")
-            
             # 如果 .new 文件已存在，添加时间戳
             if new_file.exists():
+                logger.warning(f".new 文件已存在，添加时间戳: {new_file}")
                 new_file = target_file.with_suffix(f"{target_file.suffix}.new.{timestamp}")
-            
             shutil.copy2(target_file, new_file)
+            logger.info(f"已创建 .new 备份文件: {new_file}")
             return new_file
-            
-        except Exception:
+        except Exception as e:
+            logger.exception(f"创建 .new 备份文件失败: {e}")
             return None
     
     def preview_restore(self, target_file: Path, backup_file: Path) -> Dict[str, Any]:

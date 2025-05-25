@@ -150,45 +150,38 @@ class MultiFileManager:
         """批量扫描所有文件的备份"""
         if self._is_processing:
             return False
-        
         # 获取所有需要扫描的文件（有路径且状态为PENDING）
         pending_files = [
             item for item in self.file_queue.items
             if item.status == FileStatus.PENDING and item.path
         ]
-        
         if not pending_files:
             return False
-        
         self._is_processing = True
         self._cancel_requested = False
-        
         try:
             total_files = len(pending_files)
             self._report_progress(0.0, f"开始批量扫描 {total_files} 个文件...")
-            
             for i, item in enumerate(pending_files):
                 if self._cancel_requested:
                     break
-                
                 # 扫描单个文件
                 self.scan_file_backups(item.id)
-                
                 # 更新总体进度
                 progress = (i + 1) / total_files
                 self._report_progress(progress, f"已扫描 {i + 1}/{total_files} 个文件")
-                
                 # 短暂暂停
                 time.sleep(0.1)
-            
+            # 自动为有备份但未设置selected_backup的文件设置第一个备份
+            for item in self.file_queue.items:
+                if item.backup_files and not item.selected_backup:
+                    item.set_selected_backup(item.backup_files[0].path)
             self._is_processing = False
             if self._cancel_requested:
                 self._report_progress(1.0, "批量扫描已取消")
             else:
                 self._report_progress(1.0, f"批量扫描完成，共处理 {total_files} 个文件")
-            
             return not self._cancel_requested
-            
         except Exception as ex:
             self._is_processing = False
             self._report_progress(1.0, f"批量扫描失败: {str(ex)}")
@@ -198,35 +191,35 @@ class MultiFileManager:
         """恢复指定文件"""
         item = self.file_queue.get_item(item_id)
         if not item or not item.path:
+            logger.error(f"[restore_file] 未找到文件项或路径: item_id={item_id}")
             return False
-        
         # 如果没有指定备份路径，使用已选择的备份
         if backup_path is None:
             backup_path = item.selected_backup
-        
         if not backup_path or not backup_path.exists():
+            logger.error(f"[restore_file] 没有可用的备份文件: item_id={item_id}, backup_path={backup_path}")
             item.update_status(FileStatus.ERROR, "没有可用的备份文件")
             return False
-        
         try:
             item.update_status(FileStatus.PROCESSING, "正在恢复文件...")
             self._report_progress(0.0, f"恢复 {item.name}...")
-            
+            logger.info(f"[restore_file] 开始恢复: {item.name}, 源: {item.path}, 备份: {backup_path}")
             result = self.backup_restorer.restore_backup(item.path, backup_path)
-            
             if result.get('success'):
                 item.update_status(FileStatus.COMPLETED, "文件恢复成功")
                 self._report_progress(1.0, f"{item.name} 恢复成功")
+                logger.success(f"[restore_file] 恢复成功: {item.name}")
                 return True
             else:
                 error_msg = result.get('message', '未知错误')
                 item.update_status(FileStatus.ERROR, f"恢复失败: {error_msg}")
                 self._report_progress(1.0, f"{item.name} 恢复失败")
+                logger.error(f"[restore_file] 恢复失败: {item.name}, 错误: {error_msg}")
                 return False
-                
         except Exception as ex:
             item.update_status(FileStatus.ERROR, f"恢复过程中发生错误: {str(ex)}")
             self._report_progress(1.0, f"{item.name} 恢复出错")
+            logger.exception(f"[restore_file] 恢复出错: {item.name}, 错误: {ex}")
             return False
     
     def set_selected_backup(self, item_id: str, backup_path: Path) -> bool:
@@ -246,8 +239,8 @@ class MultiFileManager:
     def batch_restore_files(self, item_ids: Optional[List[str]] = None) -> bool:
         """批量恢复文件"""
         if self._is_processing:
+            logger.warning("[batch_restore_files] 已有批处理在进行中，操作被拒绝")
             return False
-        
         # 如果没有指定文件ID，则恢复所有可恢复的文件
         if item_ids is None:
             restorable_items = self.file_queue.get_restorable_items()
@@ -259,45 +252,39 @@ class MultiFileManager:
                    self.file_queue.get_item(item_id).selected_backup
             ]
             restorable_items = [item for item in restorable_items if item]
-        
         if not restorable_items:
+            logger.warning("[batch_restore_files] 没有可恢复的文件")
             return False
-        
         self._is_processing = True
         self._cancel_requested = False
-        
         try:
             total_files = len(restorable_items)
             success_count = 0
-            
             self._report_progress(0.0, f"开始批量恢复 {total_files} 个文件...")
-            
+            logger.info(f"[batch_restore_files] 批量恢复开始，共 {total_files} 个文件")
             for i, item in enumerate(restorable_items):
                 if self._cancel_requested:
+                    logger.warning(f"[batch_restore_files] 批量恢复被取消，已处理 {i} 个文件")
                     break
-                
                 # 恢复单个文件
                 if self.restore_file(item.id):
                     success_count += 1
-                
                 # 更新总体进度
                 progress = (i + 1) / total_files
                 self._report_progress(progress, f"已处理 {i + 1}/{total_files} 个文件")
-                
-                # 短暂暂停
                 time.sleep(0.1)
-            
             self._is_processing = False
             if self._cancel_requested:
                 self._report_progress(1.0, f"批量恢复已取消，已成功恢复 {success_count} 个文件")
+                logger.warning(f"[batch_restore_files] 批量恢复已取消，成功恢复 {success_count} 个文件")
             else:
                 self._report_progress(1.0, f"批量恢复完成，成功恢复 {success_count}/{total_files} 个文件")
-            
+                logger.success(f"[batch_restore_files] 批量恢复完成，成功恢复 {success_count}/{total_files} 个文件")
             return not self._cancel_requested
-            
         except Exception as ex:
             self._is_processing = False
             self._report_progress(1.0, f"批量恢复失败: {str(ex)}")
+            logger.exception(f"[batch_restore_files] 批量恢复失败: {ex}")
             return False
     
     def cancel_batch_operation(self):

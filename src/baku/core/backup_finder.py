@@ -6,14 +6,14 @@ import os
 from pathlib import Path
 from typing import Optional, List
 from loguru import logger
-from bakr.config.config import load_bakr_config
+from baku.config.config import load_baku_config
 
 
 class BackupFinder:
     """查找备份文件的核心类"""
     
     def __init__(self):
-        config = load_bakr_config()
+        config = load_baku_config()
         self.search_extensions = config.get('bak_extensions', ['.bak', '.backup', '.old'])
         self.max_recurse_level = config.get('max_recurse_level', 5)
     

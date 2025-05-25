@@ -1,4 +1,4 @@
-# BakR - 备份文件恢复工具
+# baku - 备份文件恢复工具
 
 现代化的智能备份文件恢复工具，支持Web界面、命令行和TUI多种使用方式。
 
@@ -75,7 +75,7 @@ python run_tui.py
 ## 项目结构
 
 ```text
-BakR/
+baku/
 ├── src/
 │   ├── __main__.py          # 主模块入口
 │   ├── backup_finder.py     # 备份文件查找器
@@ -130,7 +130,7 @@ BakR/
 ```bash
 # 克隆项目
 git clone <repository-url>
-cd BakR
+cd baku
 
 # 安装依赖
 uv install

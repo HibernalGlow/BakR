@@ -63,10 +63,10 @@ def setup_logger(app_name="app", project_root=None, console_output=True):
     logger.info(f"日志系统已初始化，应用名称: {app_name}")
     return logger, config_info
 
-logger, config_info = setup_logger(app_name="bakr", console_output=True)
+logger, config_info = setup_logger(app_name="baku", console_output=True)
 
-def load_bakr_config():
-    """从config.json加载bakr相关配置"""
+def load_baku_config():
+    """从config.json加载baku相关配置"""
     config_paths = [
         Path(__file__).parent.parent / "config.json",
         Path(__file__).parent / "config.json"

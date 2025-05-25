@@ -257,7 +257,7 @@ class FileQueue:
     
     def export_status_report(self) -> str:
         """导出状态报告"""
-        lines = ["BakR 文件队列状态报告", "=" * 40, ""]
+        lines = ["baku 文件队列状态报告", "=" * 40, ""]
         lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"总文件数: {len(self.items)}")
         

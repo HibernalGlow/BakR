@@ -1,5 +1,5 @@
 """
-BakR - 命令行版本
+baku - 命令行版本
 支持交互式输入和批量处理的备份文件恢复工具
 使用核心模块实现CLI兼容性
 """
@@ -22,14 +22,14 @@ from rich.live import Live
 # 添加src目录到路径以支持核心模块导入
 
 
-from bakr.core.backup_finder import BackupFinder
-from bakr.core.backup_restorer import BackupRestorer
-from bakr.core.file_queue import FileQueue, FileQueueItem, FileStatus
-from bakr.core.multi_file_manager import MultiFileManager
+from baku.core.backup_finder import BackupFinder
+from baku.core.backup_restorer import BackupRestorer
+from baku.core.file_queue import FileQueue, FileQueueItem, FileStatus
+from baku.core.multi_file_manager import MultiFileManager
 from loguru import logger   
 
-class BakRCLI:
-    """BakR 命令行应用类"""
+class bakuCLI:
+    """baku 命令行应用类"""
     
     def __init__(self):
         self.backup_finder = BackupFinder()
@@ -40,7 +40,7 @@ class BakRCLI:
     def print_banner(self):
         """打印启动横幅"""
         banner = Panel.fit(
-            "[bold blue]BakR v2.0[/bold blue] - 智能备份文件恢复工具\n"
+            "[bold blue]baku v2.0[/bold blue] - 智能备份文件恢复工具\n"
             "[dim]支持交互式输入和批量处理[/dim]",
             border_style="blue"
         )
@@ -59,7 +59,7 @@ class BakRCLI:
     def show_interactive_menu(self):
         """显示交互式主菜单"""
         while True:
-            self.console.print("\n[bold cyan]BakR 主菜单[/bold cyan]")
+            self.console.print("\n[bold cyan]baku 主菜单[/bold cyan]")
             self.console.print("1. 📁 添加文件到队列")
             self.console.print("2. 📋 查看文件队列")
             self.console.print("3. 🔍 扫描备份文件")
@@ -89,7 +89,7 @@ class BakRCLI:
             elif choice == 7:
                 self.save_load_queue_menu()
             elif choice == 0:
-                self.console.print("[yellow]感谢使用 BakR！[/yellow]")
+                self.console.print("[yellow]感谢使用 baku！[/yellow]")
                 break
             else:
                 self.console.print("[red]无效选择，请重试[/red]")
@@ -293,7 +293,7 @@ class BakRCLI:
             self.console.print(f"[{percentage}%] {message}")
         # 设置进度回调并执行恢复
         self.file_manager.set_progress_callback(progress_callback)
-        from bakr.config.config import config_info
+        from baku.config.config import config_info
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -383,7 +383,7 @@ class BakRCLI:
         """保存队列"""
         filename = Prompt.ask(
             "[cyan]保存文件名[/cyan]", 
-            default=f"bakr_queue_{int(time.time())}.json"
+            default=f"baku_queue_{int(time.time())}.json"
         )
         
         try:
@@ -494,14 +494,14 @@ class BakRCLI:
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='BakR - 智能备份文件恢复工具')
+    parser = argparse.ArgumentParser(description='baku - 智能备份文件恢复工具')
     parser.add_argument('files', nargs='*', help='要处理的文件路径')
     parser.add_argument('-i', '--interactive', action='store_true', 
                         help='启动交互式模式')
     
     args = parser.parse_args()
     
-    app = BakRCLI()
+    app = bakuCLI()
     app.run(args.files, args.interactive)
 
 

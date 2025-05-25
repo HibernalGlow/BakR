@@ -1,5 +1,5 @@
 [project]
-name = "bakr"
+name = "baku"
 version = "0.1.8"
 description = "Backup file restore tool with drag-and-drop support"
 readme = "README.md"
@@ -15,7 +15,7 @@ dependencies = [
 
 
 [project.scripts]
-bakr = "bakr.__main__:main"
+baku = "baku.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 

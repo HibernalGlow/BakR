@@ -5,17 +5,18 @@ description = "Backup file restore tool with drag-and-drop support"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "flet>=0.24.1",
     "loguru>=0.7.3",
-    "plotly>=6.1.1",
     "rich>=14.0.0",
     "send2trash>=1.8.3",
-    "streamlit>=1.45.1",
-    "textual>=0.72.0",
+    "rich",
+    "pip>=25.1.1",
 ]
 
 
 [project.scripts]
 baku = "baku.__main__:main"
+bakui = "bakui.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 

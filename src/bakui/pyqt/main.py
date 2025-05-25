@@ -3,10 +3,10 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPu
 from PyQt5.QtGui import QFont, QColor, QPalette
 from PyQt5.QtCore import Qt
 
-from .queue_panel import QueuePanel
-from .scan_panel import ScanPanel
-from .restore_panel import RestorePanel
-from .stats_panel import StatsPanel
+from bakui.pyqt.queue_panel import QueuePanel
+from bakui.pyqt.scan_panel import ScanPanel
+from bakui.pyqt.restore_panel import RestorePanel
+from bakui.pyqt.stats_panel import StatsPanel
 
 # Tokyonight主题色
 TOKYONIGHT = {

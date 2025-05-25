@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPu
 from PyQt5.QtGui import QFont, QColor, QPalette
 from PyQt5.QtCore import Qt
 
+from baku.core.backup_finder import BackupFinder
+from baku.core.backup_restorer import BackupRestorer
+from baku.core.multi_file_manager import MultiFileManager
+
 from bakui.pyqt.queue_panel import QueuePanel
 from bakui.pyqt.scan_panel import ScanPanel
 from bakui.pyqt.restore_panel import RestorePanel
@@ -25,6 +29,10 @@ class MainWindow(QWidget):
         self.resize(900, 600)
         self.setFont(QFont('微软雅黑', 10))
         self.setStyleSheet(f"background-color: {TOKYONIGHT['bg']}; color: {TOKYONIGHT['fg']};")
+        # 创建核心对象
+        self.backup_finder = BackupFinder()
+        self.backup_restorer = BackupRestorer()
+        self.file_manager = MultiFileManager(self.backup_finder, self.backup_restorer)
         self.init_ui()
 
     def init_ui(self):
@@ -58,10 +66,10 @@ class MainWindow(QWidget):
         # 右侧功能区
         self.stack = QStackedWidget()
         self.panels = {
-            'queue': QueuePanel(theme=TOKYONIGHT),
-            'scan': ScanPanel(theme=TOKYONIGHT),
-            'restore': RestorePanel(theme=TOKYONIGHT),
-            'stats': StatsPanel(theme=TOKYONIGHT)
+            'queue': QueuePanel(file_manager=self.file_manager, theme=TOKYONIGHT),
+            'scan': ScanPanel(file_manager=self.file_manager, theme=TOKYONIGHT),
+            'restore': RestorePanel(file_manager=self.file_manager, theme=TOKYONIGHT),
+            'stats': StatsPanel(file_manager=self.file_manager, theme=TOKYONIGHT)
         }
         for p in self.panels.values():
             self.stack.addWidget(p)

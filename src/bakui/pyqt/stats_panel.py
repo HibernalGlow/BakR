@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 
 class StatsPanel(QWidget):
-    def __init__(self, theme=None):
+    def __init__(self, file_manager=None, theme=None):
         super().__init__()
         self.theme = theme or {}
+        self.file_manager = file_manager
         self.init_ui()
 
     def init_ui(self):

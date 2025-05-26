@@ -212,6 +212,9 @@ class RichPanelApp:
             except Exception as e:
                 self.message = f"[red]错误: {e}[/red]"
 
-if __name__ == "__main__":
+def main():
+    """应用入口"""
     app = RichPanelApp()
     app.run() 
+if __name__ == "__main__":
+   main()

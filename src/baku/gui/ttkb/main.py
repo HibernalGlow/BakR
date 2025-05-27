@@ -7,139 +7,187 @@ from baku.core.backup_restorer import BackupRestorer
 from baku.core.file_queue import FileQueueItem, FileStatus
 from baku.core.multi_file_manager import MultiFileManager
 from loguru import logger
-import time, json
+import time, json, re
 from pathlib import Path
+
+from baku.gui.ttkb.theme_panel import ThemePanel
+from baku.gui.ttkb.queue_panel import QueuePanel
+from baku.gui.ttkb.log_panel import LogPanel
+from baku.gui.ttkb.action_panel import ActionPanel
 
 class BakUGUI:
     def __init__(self, root):
         self.root = root
         self.auto_mode = BooleanVar(value=True)
-        self.theme_color = StringVar(value="#4a90e2")
+        self.style = tb.Style(theme="superhero")  # 默认主题
+        
+        # 核心组件
+        self.backup_finder = BackupFinder()
+        self.backup_restorer = BackupRestorer()
+        self.file_manager = MultiFileManager(self.backup_finder, self.backup_restorer)
+        
         self._setup_ui()
+        self._setup_logging()
 
     def _setup_ui(self):
-        self.root.title("BakU 文件拖拽恢复工具")
-        style = tb.Style(theme="flatly")
-        style.configure("TFrame", background="#f4f6fa")
-        main = tb.Frame(self.root, padding=20)
-        main.pack(fill=BOTH, expand=YES)
-
-        # 主题色选择
-        theme_row = tb.Frame(main)
-        theme_row.pack(fill=X, pady=4)
-        tb.Label(theme_row, text="主题色:").pack(side=LEFT)
-        color_entry = tb.Entry(theme_row, textvariable=self.theme_color, width=10)
-        color_entry.pack(side=LEFT, padx=4)
-        tb.Button(theme_row, text="应用", command=self._apply_theme).pack(side=LEFT)
-        self._apply_theme()
-
+        self.root.title("BakU - 智能备份文件恢复工具")
+        self.root.geometry("1000x700")
+        
+        # 主容器
+        main_container = tb.Frame(self.root, padding=10, bootstyle="light")
+        main_container.pack(fill=BOTH, expand=YES)
+        
+        # 顶部：主题选择和自动模式
+        top_frame = tb.Frame(main_container, bootstyle="light")
+        top_frame.pack(fill=X, pady=(0, 10))
+        
+        # 主题切换
+        self.theme_panel = ThemePanel(top_frame, self)
+        self.theme_panel.pack(side=LEFT, padx=(0, 20))
+        
         # 自动模式开关
-        auto_row = tb.Frame(main)
-        auto_row.pack(fill=X, pady=4)
-        tb.Checkbutton(auto_row, text="自动模式(优先bak)", variable=self.auto_mode, bootstyle=SUCCESS).pack(side=LEFT)
-
-        # 拖拽区
-        drop_label = tb.Label(main, text="拖拽文件到这里，或点击选择", bootstyle=INFO, anchor=CENTER, font=("Segoe UI", 14), padding=20)
-        drop_label.pack(fill=X, pady=10)
-        drop_label.drop_target_register(DND_FILES)
-        drop_label.dnd_bind('<<Drop>>', self.on_drop)
-        tb.Button(main, text="选择文件", command=self._select_files).pack(pady=2)
-
+        mode_frame = tb.Frame(top_frame, bootstyle="light")
+        mode_frame.pack(side=LEFT)
+        tb.Label(mode_frame, text="模式:", bootstyle="light").pack(side=LEFT, padx=(0, 5))
+        self.auto_checkbox = tb.Checkbutton(
+            mode_frame, 
+            text="自动模式（拖拽即恢复）", 
+            variable=self.auto_mode, 
+            bootstyle="success-round-toggle"
+        )
+        self.auto_checkbox.pack(side=LEFT)
+        
+        # 拖拽区域
+        drop_frame = tb.LabelFrame(main_container, text="拖拽区域", bootstyle="info", padding=10)
+        drop_frame.pack(fill=X, pady=(0, 10))
+        
+        self.drop_label = tb.Label(
+            drop_frame, 
+            text="🎯 拖拽文件到这里，或使用下方按钮添加文件", 
+            bootstyle="info",
+            anchor=CENTER, 
+            font=("Segoe UI", 12)
+        )
+        self.drop_label.pack(fill=X, pady=20)
+        self.drop_label.drop_target_register(DND_FILES)
+        self.drop_label.dnd_bind('<<Drop>>', self.on_drop)
+        
+        # 中部：操作按钮区
+        self.action_panel = ActionPanel(main_container, self)
+        self.action_panel.pack(fill=X, pady=(0, 10))
+        
         # 进度条
-        self.progress = tb.Progressbar(main, mode="indeterminate")
-        self.progress.pack(fill=X, pady=8)
-        self.progress.stop()
+        self.progress = tb.Progressbar(main_container, mode="indeterminate", bootstyle="info-striped")
+        self.progress.pack(fill=X, pady=(0, 10))
+        
+        # 下部：队列和日志
+        content_frame = tb.Frame(main_container, bootstyle="light")
+        content_frame.pack(fill=BOTH, expand=YES)
+        
+        # 队列面板（左侧）
+        queue_frame = tb.LabelFrame(content_frame, text="文件队列", bootstyle="secondary", padding=5)
+        queue_frame.pack(side=LEFT, fill=BOTH, expand=YES, padx=(0, 5))
+        
+        self.queue_panel = QueuePanel(queue_frame, self)
+        self.queue_panel.pack(fill=BOTH, expand=YES)
+        
+        # 日志面板（右侧）
+        log_frame = tb.LabelFrame(content_frame, text="操作日志", bootstyle="dark", padding=5)
+        log_frame.pack(side=RIGHT, fill=Y, padx=(5, 0))
+        log_frame.configure(width=300)
+        
+        self.log_panel = LogPanel(log_frame, self.style)
+        self.log_panel.pack(fill=BOTH, expand=YES)
 
-        # 结果列表
-        tb.Label(main, text="处理结果:").pack(anchor=W, pady=(8,0))
-        self.result_box = tb.Treeview(main, columns=("file", "bak", "status", "msg"), show="headings", height=5)
-        for col, txt in zip(["file", "bak", "status", "msg"], ["原文件", "bak路径", "状态", "消息"]):
-            self.result_box.heading(col, text=txt)
-            self.result_box.column(col, width=120 if col!="msg" else 200, anchor=W)
-        self.result_box.pack(fill=X, pady=2)
-
-        # 日志面板
-        tb.Label(main, text="日志:").pack(anchor=W, pady=(8,0))
-        self.log_text = tb.Text(main, height=7, bg="#222", fg="#0f0", font=("Consolas", 10))
-        self.log_text.pack(fill=BOTH, expand=YES, pady=(0,8))
-
-        # loguru日志同步
+    def _setup_logging(self):
+        """设置日志系统"""
         logger.remove()
-        logger.add(self._log_sink, level="INFO")
-
-    def _apply_theme(self):
-        color = self.theme_color.get()
-        style = tb.Style()
-        style.configure("TButton", background=color)
-        style.configure("TCheckbutton", background="#f4f6fa")
-        style.configure("TLabel", background="#f4f6fa")
-
-    def _log_sink(self, msg):
-        self.log_text.insert(END, str(msg) + "\n")
-        self.log_text.see(END)
-
-    def _select_files(self):
-        from tkinter import filedialog
-        files = filedialog.askopenfilenames()
-        if files:
-            self._process_files(list(files))
+        logger.add(self.log_panel.log, level="INFO")
+        logger.info("BakU GUI 启动成功")
 
     def on_drop(self, event):
+        """拖拽文件处理"""
         files = self.root.tk.splitlist(event.data)
-        self._process_files(files)
+        self.add_files_to_queue(files)
+        
+        if self.auto_mode.get():
+            self.process_files_auto()
 
-    def _process_files(self, file_paths):
-        self.progress.start()
-        self.result_box.delete(*self.result_box.get_children())
-        backup_finder = BackupFinder()
-        backup_restorer = BackupRestorer()
-        file_manager = MultiFileManager(backup_finder, backup_restorer)
-        bak_trace = []
+    def add_files_to_queue(self, file_paths):
+        """添加文件到队列"""
         for path in file_paths:
-            p = Path(path)
-            file_item = FileQueueItem(
-                id=f"{p.name}_{p.stat().st_size}_{int(time.time())}",
-                name=p.name,
-                path=p,
-                size=p.stat().st_size,
-                status=FileStatus.PENDING,
-                message="已添加到队列"
-            )
-            file_manager.file_queue.add_item(file_item)
-        results = []
-        for item in file_manager.file_queue.items:
-            bak_path = None
+            try:
+                p = Path(path)
+                if p.is_file():
+                    file_item = FileQueueItem(
+                        id=f"{p.name}_{p.stat().st_size}_{int(time.time())}",
+                        name=p.name,
+                        path=p,
+                        size=p.stat().st_size,
+                        status=FileStatus.PENDING,
+                        message="已添加到队列"
+                    )
+                    self.file_manager.file_queue.add_item(file_item)
+                    self.queue_panel.add_file_item(file_item)
+                    logger.info(f"添加文件: {p.name}")
+            except Exception as e:
+                logger.error(f"添加文件失败 {path}: {e}")
+
+    def process_files_auto(self):
+        """自动模式处理文件"""
+        self.progress.start()
+        try:
+            results = []
+            for item in self.file_manager.file_queue.items:
+                if item.status == FileStatus.PENDING:
+                    result = self._process_single_file(item)
+                    results.append(result)
+                    self.queue_panel.update_file_item(item)
+            
+            logger.info(f"自动处理完成，处理了 {len(results)} 个文件")
+        finally:
+            self.progress.stop()
+
+    def _process_single_file(self, item):
+        """处理单个文件"""
+        try:
+            # 优先检查同目录 .bak 文件
             bak_candidate = item.path.with_suffix(item.path.suffix + '.bak')
-            if self.auto_mode.get() and bak_candidate.exists():
-                bak_path = str(bak_candidate)
-                try:
-                    backup_restorer.restore_backup(bak_candidate, item.path)
-                    status = 'success'
-                    msg = f'优先用同目录bak恢复: {bak_path}'
-                except Exception as e:
-                    status = 'error'
-                    msg = f'bak恢复失败: {e}'
-            else:
-                found = backup_finder.find_nearest_backup(item.path)
-                if found:
-                    bak_path = str(found)
-                    try:
-                        backup_restorer.restore_backup(found, item.path)
-                        status = 'success'
-                        msg = f'回溯bak恢复: {bak_path}'
-                    except Exception as e:
-                        status = 'error'
-                        msg = f'回溯bak恢复失败: {e}'
-                else:
-                    status = 'error'
-                    msg = '未找到bak文件'
-            bak_trace.append({'file': str(item.path), 'bak': bak_path})
-            self.result_box.insert('', END, values=(str(item.path), bak_path or '', status, msg))
-            results.append({'file': str(item.path), 'bak_used': bak_path, 'status': status, 'message': msg})
-        logger.info(f"拖入文件与bak追踪: {json.dumps(bak_trace, ensure_ascii=False)}")
-        self.progress.stop()
+            if bak_candidate.exists():
+                self.backup_restorer.restore_backup(bak_candidate, item.path)
+                item.status = FileStatus.SUCCESS
+                item.message = f'从同目录bak恢复: {bak_candidate.name}'
+                logger.success(f"✓ {item.name} 恢复成功")
+                return {'status': 'success', 'file': str(item.path), 'bak': str(bak_candidate)}
+            
+            # 回溯查找备份文件
+            found_backup = self.backup_finder.find_nearest_backup(item.path)
+            if found_backup:
+                self.backup_restorer.restore_backup(found_backup, item.path)
+                item.status = FileStatus.SUCCESS
+                item.message = f'从备份恢复: {found_backup.name}'
+                logger.success(f"✓ {item.name} 恢复成功")
+                return {'status': 'success', 'file': str(item.path), 'bak': str(found_backup)}
+            
+            # 未找到备份
+            item.status = FileStatus.FAILED
+            item.message = '未找到备份文件'
+            logger.warning(f"⚠ {item.name} 未找到备份")
+            return {'status': 'failed', 'file': str(item.path), 'bak': None}
+            
+        except Exception as e:
+            item.status = FileStatus.FAILED
+            item.message = f'恢复失败: {e}'
+            logger.error(f"✗ {item.name} 恢复失败: {e}")
+            return {'status': 'error', 'file': str(item.path), 'error': str(e)}
+
+    def change_theme(self, theme_name):
+        """切换主题"""
+        self.style.theme_use(theme_name)
+        self.log_panel.update_theme_colors()
+        logger.info(f"主题已切换为: {theme_name}")
 
 if __name__ == '__main__':
     root = TkinterDnD.Tk()
     app = BakUGUI(root)
-    root.mainloop() 
+    root.mainloop()

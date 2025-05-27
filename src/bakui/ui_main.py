@@ -53,10 +53,38 @@ def setup_drag_drop(window):
     window.dom.document.events.drop += on_drop
     print("[BakU] 拖拽监听器已设置")
 
+class Api:
+    def __init__(self):
+        self.manager = MultiFileManager()
+
+    def handle_drop(self, paths: list):
+        # paths 是前端传来的本地绝对路径列表
+        for path in paths:
+            self.manager.add_file_from_info(
+                name=path.split('\\')[-1],
+                size=0,  # 可选：os.path.getsize(path)
+                file_path=path
+            )
+        # 这里可以自动扫描和恢复
+        self.manager.batch_scan_backups()
+        self.manager.batch_restore_files()
+        # 返回处理结果
+        items = []
+        for item in self.manager.get_all_items():
+            items.append({
+                'name': item.name,
+                'backup': str(item.selected_backup) if item.selected_backup else '',
+                'status': item.status.value,
+                'msg': item.message,
+                'path': str(item.path) if item.path else ''
+            })
+        return items
+
 def start_ui():
-    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'drag_drop.html'))
-    window = webview.create_window('BakU 拖拽文件', f'file://{html_path}', width=700, height=500)
-    webview.start(setup_drag_drop, window, debug=True, gui='edgechromium')
+    api = Api()
+    html_path = 'file://' + os.path.abspath('src/bakui/web/vue/dist/index.html')
+    webview.create_window('BakU 智能备份恢复工具', html_path, js_api=api, width=1100, height=700)
+    webview.start(debug=True, gui='edgechromium')
 
 if __name__ == '__main__':
     start_ui() 

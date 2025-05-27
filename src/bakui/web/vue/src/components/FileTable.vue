@@ -1,6 +1,7 @@
 <template>
     <el-table :data="fileList" style="width:100%;">
       <el-table-column prop="name" label="原文件" width="180"/>
+      <el-table-column prop="path" label="本地路径" width="320"/>
       <el-table-column prop="backup" label="备份文件" width="180"/>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{row}">

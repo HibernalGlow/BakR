@@ -4,7 +4,7 @@
       <el-main>
         <el-row :gutter="20">
           <el-col :span="8">
-            <DragDrop @files-dropped="onFilesDropped" />
+            <DragDrop @dropped-paths="onDroppedPaths" />
             <ControlPanel
               :auto-mode="autoMode"
               @toggle-auto="toggleAuto"
@@ -35,11 +35,8 @@
     fileList.value = data.queue
   }
   
-  async function onFilesDropped(files) {
-    const form = new FormData()
-    files.forEach(f => form.append('files', f.raw || f))
-    await axios.post('/api/upload', form)
-    await refreshStatus()
+  async function onDroppedPaths(result) {
+    fileList.value = result
   }
   
   async function onRestore() {

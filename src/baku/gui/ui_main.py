@@ -1,6 +1,6 @@
 import webview
 import os
-import baku  # 假设baku包已正确安装/可import
+import baku
 import json
 from baku.core.backup_finder import BackupFinder
 from baku.core.backup_restorer import BackupRestorer
@@ -11,12 +11,12 @@ from pathlib import Path
 from loguru import logger
 
 class Api:
-    def process_files(self, files):
+    def process_files(self, files, auto_mode=True):
         file_paths = [file.get('pywebviewFullPath') for file in files if file.get('pywebviewFullPath')]
         backup_finder = BackupFinder()
         backup_restorer = BackupRestorer()
         file_manager = MultiFileManager(backup_finder, backup_restorer)
-        # 添加文件到队列
+        bak_trace = []
         for path in file_paths:
             p = Path(path)
             file_item = FileQueueItem(
@@ -28,45 +28,67 @@ class Api:
                 message="已添加到队列"
             )
             file_manager.file_queue.add_item(file_item)
-        # 自动扫描和恢复
-        file_manager.batch_scan_backups()
-        file_manager.batch_restore_files()
-        # 收集结果
+        # 自动模式：优先用同目录bak，否则回溯
         results = []
         for item in file_manager.file_queue.items:
+            bak_path = None
+            # 1. 优先同目录bak
+            bak_candidate = item.path.with_suffix(item.path.suffix + '.bak')
+            if auto_mode and bak_candidate.exists():
+                bak_path = str(bak_candidate)
+                try:
+                    backup_restorer.restore_backup(bak_candidate, item.path)
+                    status = 'success'
+                    msg = f'优先用同目录bak恢复: {bak_path}'
+                except Exception as e:
+                    status = 'error'
+                    msg = f'bak恢复失败: {e}'
+            else:
+                # 2. 回溯查找
+                found = backup_finder.find_nearest_backup(item.path)
+                if found:
+                    bak_path = str(found)
+                    try:
+                        backup_restorer.restore_backup(found, item.path)
+                        status = 'success'
+                        msg = f'回溯bak恢复: {bak_path}'
+                    except Exception as e:
+                        status = 'error'
+                        msg = f'回溯bak恢复失败: {e}'
+                else:
+                    status = 'error'
+                    msg = '未找到bak文件'
+            bak_trace.append({'file': str(item.path), 'bak': bak_path})
             results.append({
                 'file': str(item.path),
-                'status': item.status.value,
-                'message': item.message
+                'bak_used': bak_path,
+                'status': status,
+                'message': msg
             })
+        # 记录追踪日志
+        logger.info(f"拖入文件与bak追踪: {json.dumps(bak_trace, ensure_ascii=False)}")
         return results
 
 def on_drop(event, window):
     files = event['dataTransfer']['files']
     file_list = [f for f in files if 'pywebviewFullPath' in f]
+    # 兼容前端传递auto_mode
+    auto_mode = True
+    if hasattr(window, 'auto_mode'):
+        auto_mode = window.auto_mode
     paths_json = json.dumps([f['pywebviewFullPath'] for f in file_list])
     window.evaluate_js(f'window.showProcessing({paths_json})')
     api = Api()
-    process_results = api.process_files(file_list)
+    process_results = api.process_files(file_list, auto_mode=auto_mode)
     results_json = json.dumps(process_results)
     window.evaluate_js(f'window.showResults({results_json})')
 
 def setup_drag_drop(window):
     window.events.loaded.wait()
-    # 用lambda或partial传递window
     window.dom.document.events.drop += lambda event: on_drop(event, window)
 
 def start_ui():
-    # 获取当前文件的目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # 构建Vue应用的HTML路径
-    html_path = os.path.join(current_dir, 'vue', 'dist', 'index.html')
-    # 确保HTML文件存在
-    if not os.path.exists(html_path):
-        logger.error(f"Vue应用的HTML文件不存在: {html_path}")
-        return
-    
-    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'vue', 'dist', 'index.html'))
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'index.html'))
     window = webview.create_window('BakU 拖拽文件', f'file://{html_path}', width=700, height=500)
 
     # 注册 loguru sink，将日志推送到前端

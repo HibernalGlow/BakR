@@ -13,7 +13,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, toRefs } from 'vue'
+const props = defineProps({
+  autoMode: { type: Boolean, default: true }
+})
 const isDragover = ref(false)
 const fileInput = ref(null)
 
@@ -28,7 +31,8 @@ function onDrop(e) {
   })
   // 你可以直接传递 files 给 Python
   if (window.pywebview && window.pywebview.api && window.pywebview.api.process_files) {
-    window.pywebview.api.process_files(files)
+    // 传递 autoMode 给后端
+    window.pywebview.api.process_files(files, props.autoMode)
   }
 }
 function triggerFileInput() {
@@ -38,7 +42,7 @@ function onFileChange(e) {
   const files = Array.from(e.target.files)
   // 同理，pywebviewFullPath 也会有
   if (window.pywebview && window.pywebview.api && window.pywebview.api.process_files) {
-    window.pywebview.api.process_files(files)
+    window.pywebview.api.process_files(files, props.autoMode)
   }
 }
 </script>

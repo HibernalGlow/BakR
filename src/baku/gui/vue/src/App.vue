@@ -15,6 +15,7 @@ function toggleDevtools() {
 const progressVisible = ref(false)
 const results = ref([])
 const logs = ref([])
+const autoMode = ref(true)
 
 onMounted(() => {
   window.showProcessing = function() { progressVisible.value = true }
@@ -39,7 +40,12 @@ onMounted(() => {
     </div>
   </header>
   <main>
-    <DragDropZone />
+    <div class="flex items-center mb-4">
+      <label class="mr-2 font-medium">自动模式</label>
+      <input type="checkbox" v-model="autoMode" class="toggle toggle-primary" />
+      <span class="ml-2 text-sm text-gray-500">优先用bak自动恢复</span>
+    </div>
+    <DragDropZone :auto-mode="autoMode" />
     <ProgressBar :visible="progressVisible" />
     <ResultList :results="results" />
     <LogPanel :logs="logs" />

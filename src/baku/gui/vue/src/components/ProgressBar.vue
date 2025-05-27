@@ -1,11 +1,16 @@
 <template>
-  <div v-if="visible" class="progress-bar">
-    <span class="loader"></span> 正在处理文件，请稍候...
+  <div v-if="visible" class="flex items-center space-x-3 my-4">
+    <svg class="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+    <span class="text-blue-700 font-medium">正在处理文件，请稍候...</span>
   </div>
 </template>
 <script setup>
 defineProps({ visible: Boolean })
 </script>
+
 <style scoped>
 .progress-bar {
   text-align: center;

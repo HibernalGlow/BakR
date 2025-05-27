@@ -1,5 +1,5 @@
 <template>
-  <div id="log" class="log-panel" ref="logPanel">
+  <div class="h-48 overflow-auto bg-zinc-900 rounded-lg p-3 text-sm font-mono mt-4">
     <div v-for="(line, i) in logs" :key="i" v-html="line"></div>
   </div>
 </template>

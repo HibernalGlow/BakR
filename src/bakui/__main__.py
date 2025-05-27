@@ -8,7 +8,7 @@ from pathlib import Path
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bakui.fletui.flet_app import main
+from .ui_main import start_ui
 
 if __name__ == "__main__":
-    main()
+    start_ui()

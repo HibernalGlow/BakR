@@ -186,9 +186,9 @@ class ActionPanel(tb.Frame):
             self.main_app.progress.stop()
     
     def restore_all(self):
-        """批量恢复队列中的所有文件"""
+        """批量恢复队列中的所有文件"""        
         queue_items = [item for item in self.main_app.file_manager.file_queue.items 
-                      if item.status in [FileStatus.PENDING, FileStatus.FAILED]]
+                      if item.status in [FileStatus.PENDING, FileStatus.ERROR]]
         
         if not queue_items:
             self.main_app.log_panel.log("没有需要恢复的文件", "WARNING")

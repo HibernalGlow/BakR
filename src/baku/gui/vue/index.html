@@ -1,13 +1,56 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
+    <title>🎯 BakU - 智能备份文件恢复工具</title>
+    <meta name="description" content="BakU 是一个智能备份文件恢复工具，支持拖拽操作和自动恢复">
+    
+    <!-- 预加载 chroma.js 用于主题系统 -->
+    <script src="https://cdn.jsdelivr.net/npm/chroma-js@3.1.2/chroma.min.js"></script>
+    
+    <!-- pywebview 桥接脚本 -->
+    <script>
+      // 确保 pywebview 桥接可用
+      window.pywebview = window.pywebview || {
+        api: {},
+        platform: 'web'
+      };
+      
+      // 添加调试信息
+      console.log('BakU Vue 前端启动');
+      console.log('pywebview 状态:', window.pywebview ? '已连接' : '未连接');
+      
+      // 全局错误处理
+      window.addEventListener('error', (event) => {
+        console.error('Global Error:', event.error);
+      });
+      
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled Promise Rejection:', event.reason);
+      });
+    </script>
   </head>
-  <body>
-    <div id="app"></div>
+  <body class="bg-gray-50">
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>❌ JavaScript 已禁用</h1>
+        <p>请启用 JavaScript 以使用 BakU 应用程序。</p>
+      </div>
+    </noscript>
+    
+    <div id="app">
+      <!-- 加载中的占位符 -->
+      <div style="display: flex; items-center: justify-center; height: 100vh; font-family: Arial, sans-serif;">
+        <div style="text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 16px;">🎯</div>
+          <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 8px;">BakU</div>
+          <div style="color: #6b7280;">正在加载界面...</div>
+        </div>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

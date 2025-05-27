@@ -64,14 +64,13 @@ class QueuePanel(tb.Frame):
         self.file_items = {}
     
     def add_file_item(self, file_item):
-        """添加文件项到队列"""
-        # 状态图标映射
+        """添加文件项到队列"""        # 状态图标映射
         status_icons = {
             FileStatus.PENDING: "⏳",
             FileStatus.PROCESSING: "🔄",
-            FileStatus.SUCCESS: "✅",
-            FileStatus.FAILED: "❌",
-            FileStatus.SKIPPED: "⏭️"
+            FileStatus.COMPLETED: "✅",
+            FileStatus.ERROR: "❌",
+            FileStatus.CANCELLED: "⏭️"
         }
         
         status_display = f"{status_icons.get(file_item.status, '❓')} {file_item.status.value}"

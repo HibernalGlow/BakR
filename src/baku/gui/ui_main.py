@@ -88,7 +88,7 @@ def setup_drag_drop(window):
     window.dom.document.events.drop += lambda event: on_drop(event, window)
 
 def start_ui():
-    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'index.html'))
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'vue', 'dist', 'index.html'))
     window = webview.create_window('BakU 拖拽文件', f'file://{html_path}', width=700, height=500)
 
     # 注册 loguru sink，将日志推送到前端

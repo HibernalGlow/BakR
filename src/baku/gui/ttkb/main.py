@@ -146,37 +146,47 @@ class BakUGUI:
             
             logger.info(f"自动处理完成，处理了 {len(results)} 个文件")
         finally:
-            self.progress.stop()
-
+            self.progress.stop()    
     def _process_single_file(self, item):
         """处理单个文件"""
-        try:
-            # 优先检查同目录 .bak 文件
+        try:            # 优先检查同目录 .bak 文件
             bak_candidate = item.path.with_suffix(item.path.suffix + '.bak')
             if bak_candidate.exists():
-                self.backup_restorer.restore_backup(bak_candidate, item.path)
-                item.status = FileStatus.SUCCESS
-                item.message = f'从同目录bak恢复: {bak_candidate.name}'
-                logger.success(f"✓ {item.name} 恢复成功")
-                return {'status': 'success', 'file': str(item.path), 'bak': str(bak_candidate)}
-            
-            # 回溯查找备份文件
+                # 修复参数顺序：第一个是目标文件，第二个是备份文件
+                result = self.backup_restorer.restore_backup(item.path, bak_candidate)
+                if result.get('success', False):
+                    item.status = FileStatus.COMPLETED
+                    item.message = f'从同目录bak恢复: {bak_candidate.name}'
+                    logger.success(f"✓ {item.name} 恢复成功")
+                    return {'status': 'success', 'file': str(item.path), 'bak': str(bak_candidate)}
+                else:
+                    item.status = FileStatus.ERROR
+                    item.message = f'恢复失败: {result.get("message", "未知错误")}'
+                    logger.error(f"✗ {item.name} 恢复失败: {result.get('message')}")
+                    return {'status': 'error', 'file': str(item.path), 'error': result.get('message')}
+              # 回溯查找备份文件
             found_backup = self.backup_finder.find_nearest_backup(item.path)
             if found_backup:
-                self.backup_restorer.restore_backup(found_backup, item.path)
-                item.status = FileStatus.SUCCESS
-                item.message = f'从备份恢复: {found_backup.name}'
-                logger.success(f"✓ {item.name} 恢复成功")
-                return {'status': 'success', 'file': str(item.path), 'bak': str(found_backup)}
-            
-            # 未找到备份
-            item.status = FileStatus.FAILED
+                # 修复参数顺序：第一个是目标文件，第二个是备份文件
+                result = self.backup_restorer.restore_backup(item.path, found_backup)
+                if result.get('success', False):
+                    item.status = FileStatus.COMPLETED
+                    item.message = f'从备份恢复: {found_backup.name}'
+                    logger.success(f"✓ {item.name} 恢复成功")
+                    return {'status': 'success', 'file': str(item.path), 'bak': str(found_backup)}
+                else:
+                    item.status = FileStatus.ERROR
+                    item.message = f'恢复失败: {result.get("message", "未知错误")}'
+                    logger.error(f"✗ {item.name} 恢复失败: {result.get('message')}")
+                    return {'status': 'error', 'file': str(item.path), 'error': result.get('message')}
+              # 未找到备份
+            item.status = FileStatus.ERROR
             item.message = '未找到备份文件'
             logger.warning(f"⚠ {item.name} 未找到备份")
             return {'status': 'failed', 'file': str(item.path), 'bak': None}
             
         except Exception as e:
-            item.status = FileStatus.FAILED
+            item.status = FileStatus.ERROR
             item.message = f'恢复失败: {e}'
             logger.error(f"✗ {item.name} 恢复失败: {e}")
             return {'status': 'error', 'file': str(item.path), 'error': str(e)}

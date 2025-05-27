@@ -1,0 +1,309 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* 自定义 CSS 变量 */
+:root {
+  /* 默认自定义主题色 */
+  --color-custom-100: #dbeafe;
+  --color-custom-200: #bfdbfe;
+  --color-custom-300: #93c5fd;
+  --color-custom-400: #60a5fa;
+  --color-custom-500: #3b82f6;
+  --color-custom-600: #2563eb;
+  --color-custom-700: #1d4ed8;
+  --color-custom-800: #1e40af;
+  --color-custom-900: #1e3a8a;
+}
+
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #334155;
+  background-color: #f8fafc;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 深色模式下的滚动条 */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* 自定义组件样式 */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
+}
+
+.btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+.btn-warning {
+  @apply bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+}
+
+.card-header {
+  @apply border-b border-gray-200 pb-3 mb-3;
+}
+
+.card-title {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+/* 输入框样式 */
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500;
+}
+
+.form-select {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500;
+}
+
+.form-checkbox {
+  @apply h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+}
+
+/* 动画类 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+.bounce-enter-active {
+  animation: bounce-in 0.5s;
+}
+
+.bounce-leave-active {
+  animation: bounce-out 0.5s;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce-out {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+/* 加载动画 */
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loading-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% {
+    content: '';
+  }
+  40% {
+    content: '.';
+  }
+  60% {
+    content: '..';
+  }
+  80%, 100% {
+    content: '...';
+  }
+}
+
+/* 工具提示样式 */
+.tooltip {
+  @apply absolute z-50 px-2 py-1 text-sm text-white bg-gray-800 rounded shadow-lg;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  @apply fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-48;
+}
+
+.context-menu-item {
+  @apply w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors cursor-pointer;
+}
+
+.context-menu-divider {
+  @apply my-1 border-gray-200;
+}
+
+/* 状态指示器 */
+.status-dot {
+  @apply inline-block w-2 h-2 rounded-full mr-2;
+}
+
+.status-pending {
+  @apply bg-yellow-400;
+}
+
+.status-success {
+  @apply bg-green-400;
+}
+
+.status-error {
+  @apply bg-red-400;
+}
+
+.status-processing {
+  @apply bg-blue-400 animate-pulse;
+}
+
+/* 文件图标 */
+.file-icon {
+  @apply w-5 h-5 mr-2 flex-shrink-0;
+}
+
+/* 拖拽区域样式 */
+.drop-zone {
+  @apply border-2 border-dashed border-blue-300 rounded-lg p-8 text-center transition-all duration-300 cursor-pointer;
+}
+
+.drop-zone:hover {
+  @apply border-blue-400 bg-blue-50;
+}
+
+.drop-zone.drag-over {
+  @apply border-blue-500 bg-blue-100 transform scale-105;
+}
+
+/* 进度条样式 */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2 overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full bg-blue-600 transition-all duration-300 ease-out;
+}
+
+/* 日志样式 */
+.log-entry {
+  @apply font-mono text-sm py-1 px-2 border-b border-gray-700;
+}
+
+.log-info {
+  @apply text-blue-400;
+}
+
+.log-success {
+  @apply text-green-400;
+}
+
+.log-warning {
+  @apply text-yellow-400;
+}
+
+.log-error {
+  @apply text-red-400;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .btn {
+    @apply text-sm px-3 py-1;
+  }
+  
+  .card {
+    @apply p-3;
+  }
+  
+  .card-title {
+    @apply text-base;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .card {
+    @apply shadow-none border;
+  }
+}

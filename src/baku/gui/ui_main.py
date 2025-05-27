@@ -57,7 +57,16 @@ def setup_drag_drop(window):
     window.dom.document.events.drop += lambda event: on_drop(event, window)
 
 def start_ui():
-    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'index.html'))
+    # 获取当前文件的目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建Vue应用的HTML路径
+    html_path = os.path.join(current_dir, 'vue', 'dist', 'index.html')
+    # 确保HTML文件存在
+    if not os.path.exists(html_path):
+        logger.error(f"Vue应用的HTML文件不存在: {html_path}")
+        return
+    
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'vue', 'dist', 'index.html'))
     window = webview.create_window('BakU 拖拽文件', f'file://{html_path}', width=700, height=500)
 
     # 注册 loguru sink，将日志推送到前端

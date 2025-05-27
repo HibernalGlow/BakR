@@ -1,90 +1,64 @@
 import webview
 import os
-from baku.core.multi_file_manager import MultiFileManager
-import threading
+import baku  # 假设baku包已正确安装/可import
 import json
+from baku.core.backup_finder import BackupFinder
+from baku.core.backup_restorer import BackupRestorer
+from baku.core.multi_file_manager import MultiFileManager
+from baku.core.file_queue import FileQueueItem, FileStatus
+import time
+from pathlib import Path
 
-def on_drop(event):
-    print("[BakU] Drop event triggered!")
-    files = event['dataTransfer']['files']
-    dropped_files = []
-    for file in files:
-        # pywebviewFullPath 5.0+，否则跳过
-        if 'pywebviewFullPath' in file:
-            dropped_files.append({
-                'name': file['name'],
-                'size': file['size'],
-                'file_path': file['pywebviewFullPath'],
-                'last_modified': file.get('lastModified', None)
+class Api:
+    def process_files(self, files):
+        file_paths = [file.get('pywebviewFullPath') for file in files if file.get('pywebviewFullPath')]
+        backup_finder = BackupFinder()
+        backup_restorer = BackupRestorer()
+        file_manager = MultiFileManager(backup_finder, backup_restorer)
+        # 添加文件到队列
+        for path in file_paths:
+            p = Path(path)
+            file_item = FileQueueItem(
+                id=f"{p.name}_{p.stat().st_size}_{int(time.time())}",
+                name=p.name,
+                path=p,
+                size=p.stat().st_size,
+                status=FileStatus.PENDING,
+                message="已添加到队列"
+            )
+            file_manager.file_queue.add_item(file_item)
+        # 自动扫描和恢复
+        file_manager.batch_scan_backups()
+        file_manager.batch_restore_files()
+        # 收集结果
+        results = []
+        for item in file_manager.file_queue.items:
+            results.append({
+                'file': str(item.path),
+                'status': item.status.value,
+                'message': item.message
             })
-    if not dropped_files:
-        print("未获取到完整路径，需pywebview 5.0+")
-        return
-    # 启动线程处理，避免阻塞UI
-    threading.Thread(target=process_files, args=(dropped_files,)).start()
+        return results
 
-def process_files(dropped_files):
-    manager = MultiFileManager()
-    # 添加文件到队列
-    for f in dropped_files:
-        manager.add_file_from_info(f['name'], f['size'], f['file_path'], f['last_modified'])
-    # 扫描备份
-    manager.batch_scan_backups()
-    # 恢复文件
-    manager.batch_restore_files()
-    # 获取结果
-    summary = manager.get_queue_summary()
-    items = [
-        {
-            'name': item.name,
-            'status': item.status.value,
-            'msg': item.message,
-            'path': str(item.path) if item.path else '',
-            'backup': str(item.selected_backup) if item.selected_backup else ''
-        }
-        for item in manager.get_all_items()
-    ]
-    # 回传结果到前端
-    js = f"window.showResult({json.dumps({'summary': summary, 'items': items}, ensure_ascii=False)})"
-    webview.windows[0].evaluate_js(js)
+def on_drop(event, window):
+    files = event['dataTransfer']['files']
+    file_list = [f for f in files if 'pywebviewFullPath' in f]
+    paths_json = json.dumps([f['pywebviewFullPath'] for f in file_list])
+    window.evaluate_js(f'window.showProcessing({paths_json})')
+    api = Api()
+    process_results = api.process_files(file_list)
+    results_json = json.dumps(process_results)
+    window.evaluate_js(f'window.showResults({results_json})')
 
 def setup_drag_drop(window):
     window.events.loaded.wait()
-    window.dom.document.events.drop += on_drop
-    print("[BakU] 拖拽监听器已设置")
-
-class Api:
-    def __init__(self):
-        self.manager = MultiFileManager()
-
-    def handle_drop(self, paths: list):
-        # paths 是前端传来的本地绝对路径列表
-        for path in paths:
-            self.manager.add_file_from_info(
-                name=path.split('\\')[-1],
-                size=0,  # 可选：os.path.getsize(path)
-                file_path=path
-            )
-        # 这里可以自动扫描和恢复
-        self.manager.batch_scan_backups()
-        self.manager.batch_restore_files()
-        # 返回处理结果
-        items = []
-        for item in self.manager.get_all_items():
-            items.append({
-                'name': item.name,
-                'backup': str(item.selected_backup) if item.selected_backup else '',
-                'status': item.status.value,
-                'msg': item.message,
-                'path': str(item.path) if item.path else ''
-            })
-        return items
+    # 用lambda或partial传递window
+    window.dom.document.events.drop += lambda event: on_drop(event, window)
 
 def start_ui():
-    api = Api()
-    html_path = 'file://' + os.path.abspath('src/bakui/web/vue/dist/index.html')
-    webview.create_window('BakU 智能备份恢复工具', html_path, js_api=api, width=1100, height=700)
-    webview.start(debug=True, gui='edgechromium')
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'index.html'))
+    window = webview.create_window('BakU 拖拽文件', f'file://{html_path}', width=700, height=500)
+    webview.start(setup_drag_drop, window, debug=False, gui='edgechromium')
 
 if __name__ == '__main__':
     start_ui() 

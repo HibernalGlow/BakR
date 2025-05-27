@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BakU 文件处理</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fa; margin: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #0001; padding: 32px 24px; }
+        h2 { text-align: center; color: #2d3a4b; }
+        .drop-zone {
+            border: 2px dashed #4a90e2;
+            border-radius: 10px;
+            background: #f0f7ff;
+            color: #4a90e2;
+            text-align: center;
+            padding: 40px 0;
+            font-size: 20px;
+            margin-bottom: 24px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .drop-zone.dragover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+        #progress {
+            display: none;
+            text-align: center;
+            margin: 16px 0;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4a90e2;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #file-list, #result-list {
+            list-style: none; padding: 0; margin: 0;
+        }
+        #file-list li, #result-list li {
+            background: #f7fafd;
+            margin: 8px 0;
+            padding: 10px 16px;
+            border-radius: 6px;
+            color: #333;
+            font-size: 16px;
+        }
+        #result-list li.success { color: #388e3c; }
+        #result-list li.error { color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>BakU 文件拖拽处理</h2>
+        <div class="drop-zone" id="dropZone">拖拽文件到这里，或点击选择</div>
+        <input type="file" id="fileInput" multiple style="display:none;" />
+        <ul id="file-list"></ul>
+        <div id="progress"><span class="loader"></span> 正在处理文件，请稍候...</div>
+        <ul id="result-list"></ul>
+        <div id="log" style="height:180px;overflow:auto;background:#222;color:#0f0;padding:8px;font-size:13px;margin-top:18px;border-radius:6px;"></div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html> 

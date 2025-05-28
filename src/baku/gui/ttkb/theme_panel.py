@@ -21,7 +21,7 @@ class ThemePanel(tb.Frame):
         theme_menu.pack(side=LEFT, padx=(0, 10))
         
         # 快速主题按钮
-        popular_themes = ["superhero", "darkly", "solar", "flatly", "cosmo", "litera"]
+        popular_themes = ["litera","superhero", "darkly", "solar", "flatly", "cosmo"]
         for theme in popular_themes:
             if theme in self.main_app.style.theme_names():
                 btn = tb.Button(

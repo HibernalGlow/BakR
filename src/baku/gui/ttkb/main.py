@@ -7,7 +7,7 @@ from baku.core.backup_restorer import BackupRestorer
 from baku.core.file_queue import FileQueueItem, FileStatus
 from baku.core.multi_file_manager import MultiFileManager
 from loguru import logger
-import time, json, re
+import time, json, re, sys
 from pathlib import Path
 
 from baku.gui.ttkb.theme_panel import ThemePanel
@@ -33,9 +33,15 @@ class BakUGUI:
         self.root.title("BakU - 智能备份文件恢复工具")
         self.root.geometry("1000x700")
         
+        # 设置整个窗口支持拖拽
+        self.root.drop_target_register(DND_FILES)
+        self.root.dnd_bind('<<Drop>>', self.on_drop)
+        
         # 主容器
         main_container = tb.Frame(self.root, padding=10, bootstyle="light")
         main_container.pack(fill=BOTH, expand=YES)
+        main_container.drop_target_register(DND_FILES)
+        main_container.dnd_bind('<<Drop>>', self.on_drop)
         
         # 顶部：主题选择和自动模式
         top_frame = tb.Frame(main_container, bootstyle="light")
@@ -69,8 +75,6 @@ class BakUGUI:
             font=("Segoe UI", 12)
         )
         self.drop_label.pack(fill=X, pady=20)
-        self.drop_label.drop_target_register(DND_FILES)
-        self.drop_label.dnd_bind('<<Drop>>', self.on_drop)
         
         # 中部：操作按钮区
         self.action_panel = ActionPanel(main_container, self)
@@ -101,8 +105,9 @@ class BakUGUI:
 
     def _setup_logging(self):
         """设置日志系统"""
-        logger.remove()
-        logger.add(self.log_panel.log, level="INFO")
+        # 添加到日志面板的处理器
+        # 不要移除现有的处理器，只是增加一个GUI面板的处理器
+        logger.add(self.log_panel.log, level="TRACE")
         logger.info("BakU GUI 启动成功")
 
     def on_drop(self, event):
@@ -149,41 +154,50 @@ class BakUGUI:
             self.progress.stop()    
     def _process_single_file(self, item):
         """处理单个文件"""
-        try:            # 优先检查同目录 .bak 文件
+        try:            
+            # 优先检查同目录 .bak 文件
             bak_candidate = item.path.with_suffix(item.path.suffix + '.bak')
             if bak_candidate.exists():
+                # 提取出真正需要恢复的目标文件 - 移除 .bak 后缀
+                original_file = bak_candidate.with_suffix('')  # 去掉 .bak 后缀
+                
                 # 修复参数顺序：第一个是目标文件，第二个是备份文件
-                result = self.backup_restorer.restore_backup(item.path, bak_candidate)
+                result = self.backup_restorer.restore_backup(original_file, bak_candidate)
                 if result.get('success', False):
                     item.status = FileStatus.COMPLETED
-                    item.message = f'从同目录bak恢复: {bak_candidate.name}'
-                    logger.success(f"✓ {item.name} 恢复成功")
-                    return {'status': 'success', 'file': str(item.path), 'bak': str(bak_candidate)}
+                    item.message = f'从同目录bak恢复: {original_file.name} ← {bak_candidate.name}'
+                    logger.success(f"✓ {item.name} 定位的备份 {bak_candidate.name} 已恢复到 {original_file.name}")
+                    return {'status': 'success', 'file': str(original_file), 'bak': str(bak_candidate)}
                 else:
                     item.status = FileStatus.ERROR
                     item.message = f'恢复失败: {result.get("message", "未知错误")}'
                     logger.error(f"✗ {item.name} 恢复失败: {result.get('message')}")
-                    return {'status': 'error', 'file': str(item.path), 'error': result.get('message')}
-              # 回溯查找备份文件
+                    return {'status': 'error', 'file': str(original_file), 'error': result.get('message')}
+            
+            # 回溯查找备份文件
             found_backup = self.backup_finder.find_nearest_backup(item.path)
             if found_backup:
+                # 提取出真正需要恢复的目标文件 - 移除 .bak 后缀
+                original_file = found_backup.with_suffix('')  # 去掉 .bak 后缀
+                
                 # 修复参数顺序：第一个是目标文件，第二个是备份文件
-                result = self.backup_restorer.restore_backup(item.path, found_backup)
+                result = self.backup_restorer.restore_backup(original_file, found_backup)
                 if result.get('success', False):
                     item.status = FileStatus.COMPLETED
-                    item.message = f'从备份恢复: {found_backup.name}'
-                    logger.success(f"✓ {item.name} 恢复成功")
-                    return {'status': 'success', 'file': str(item.path), 'bak': str(found_backup)}
+                    item.message = f'从备份恢复: {original_file.name} ← {found_backup.name}'
+                    logger.success(f"✓ {item.name} 定位的备份 {found_backup.name} 已恢复到 {original_file.name}")
+                    return {'status': 'success', 'file': str(original_file), 'bak': str(found_backup)}
                 else:
                     item.status = FileStatus.ERROR
                     item.message = f'恢复失败: {result.get("message", "未知错误")}'
                     logger.error(f"✗ {item.name} 恢复失败: {result.get('message')}")
-                    return {'status': 'error', 'file': str(item.path), 'error': result.get('message')}
-              # 未找到备份
+                    return {'status': 'error', 'file': str(original_file), 'error': result.get('message')}
+            
+            # 未找到备份
             item.status = FileStatus.ERROR
             item.message = '未找到备份文件'
             logger.warning(f"⚠ {item.name} 未找到备份")
-            return {'status': 'failed', 'file': str(item.path), 'bak': None}
+            return {'status': 'error', 'file': str(item.path), 'bak': None}
             
         except Exception as e:
             item.status = FileStatus.ERROR

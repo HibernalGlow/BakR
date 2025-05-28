@@ -14,8 +14,17 @@ class QueuePanel(tb.Frame):
             columns=("name", "path", "status", "message"), 
             show="headings", 
             height=12,
-            selectmode="extended"  # 支持多选
+            selectmode="extended",  # 支持多选
+            bootstyle="secondary"
         )
+        
+        # 配置行颜色标签
+        self.tree.tag_configure("success", background="#d4edda")
+        self.tree.tag_configure("danger", background="#f8d7da")
+        self.tree.tag_configure("warning", background="#fff3cd")
+        self.tree.tag_configure("info", background="#d1ecf1")
+        self.tree.tag_configure("secondary", background="#e2e3e5")
+        self.tree.tag_configure("default", background="#ffffff")
         
         # 列标题和宽度
         columns_config = {
@@ -29,8 +38,8 @@ class QueuePanel(tb.Frame):
             self.tree.heading(col, text=text)
             self.tree.column(col, width=width, anchor=W)
           # 滚动条
-        v_scrollbar = tb.Scrollbar(self, orient="vertical", command=self.tree.yview)
-        h_scrollbar = tb.Scrollbar(self, orient="horizontal", command=self.tree.xview)
+        v_scrollbar = tb.Scrollbar(self, orient="vertical", command=self.tree.yview, bootstyle="secondary-round")
+        h_scrollbar = tb.Scrollbar(self, orient="horizontal", command=self.tree.xview, bootstyle="secondary-round")
         self.tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
         
         # 布局
@@ -42,7 +51,11 @@ class QueuePanel(tb.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
-        # 拖拽支持
+        # 拖拽支持 - 支持整个队列面板
+        self.drop_target_register(DND_FILES)
+        self.dnd_bind('<<Drop>>', self.on_drop)
+        
+        # 树视图拖拽支持
         self.tree.drop_target_register(DND_FILES)
         self.tree.dnd_bind('<<Drop>>', self.on_drop)
         
@@ -98,9 +111,9 @@ class QueuePanel(tb.Frame):
                 status_icons = {
                     FileStatus.PENDING: "⏳",
                     FileStatus.PROCESSING: "🔄",
-                    FileStatus.SUCCESS: "✅",
-                    FileStatus.FAILED: "❌",
-                    FileStatus.SKIPPED: "⏭️"
+                    FileStatus.COMPLETED: "✅",
+                    FileStatus.ERROR: "❌",
+                    FileStatus.CANCELLED: "⏭️"
                 }
                 
                 status_display = f"{status_icons.get(file_item.status, '❓')} {file_item.status.value}"
@@ -115,20 +128,37 @@ class QueuePanel(tb.Frame):
                 
                 # 更新颜色
                 self._update_item_color(item_id, file_item.status)
+                
+                # 更新存储的项
+                self.file_items[item_id] = file_item
                 break
     
     def _update_item_color(self, item_id, status):
         """根据状态更新项颜色"""
         color_map = {
-            FileStatus.SUCCESS: "success",
-            FileStatus.FAILED: "danger", 
+            FileStatus.COMPLETED: "success",
+            FileStatus.ERROR: "danger", 
             FileStatus.PROCESSING: "warning",
             FileStatus.PENDING: "info",
-            FileStatus.SKIPPED: "secondary"
+            FileStatus.CANCELLED: "secondary"
         }
         
+        tag = color_map.get(status, "default")
+        
+        # 清除之前的标签
+        for tag_name in color_map.values():
+            self.tree.item(item_id, tags=(tag,))
+        
+        # 应用颜色标签
         if status in color_map:
-            self.tree.set(item_id, "status", self.tree.set(item_id, "status"))
+            self.tree.item(item_id, tags=(tag,))
+    
+    def update_colors(self):
+        """更新所有队列项的颜色"""
+        for item_id in self.tree.get_children():
+            if item_id in self.file_items:
+                file_item = self.file_items[item_id]
+                self._update_item_color(item_id, file_item.status)
     
     def get_selected_items(self):
         """获取选中的文件项"""
@@ -204,7 +234,7 @@ class QueuePanel(tb.Frame):
         try:
             success_count = 0
             for item in selected_items:
-                if item.status == FileStatus.SUCCESS:
+                if item.status == FileStatus.COMPLETED:
                     self.main_app.log_panel.log(f"⏭️ {item.name} 已恢复，跳过", "INFO")
                     continue
                 

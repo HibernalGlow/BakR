@@ -19,7 +19,7 @@ class BakUGUI:
     def __init__(self, root):
         self.root = root
         self.auto_mode = BooleanVar(value=True)
-        self.style = tb.Style(theme="superhero")  # 默认主题
+        self.style = tb.Style(theme="fatly")  # 默认主题
         
         # 核心组件
         self.backup_finder = BackupFinder()
@@ -211,7 +211,10 @@ class BakUGUI:
         self.log_panel.update_theme_colors()
         logger.info(f"主题已切换为: {theme_name}")
 
-if __name__ == '__main__':
+def main():
+    """主函数"""
     root = TkinterDnD.Tk()
     app = BakUGUI(root)
     root.mainloop()
+if __name__ == '__main__':
+    main()
